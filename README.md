@@ -1,4 +1,16 @@
-# Smart Contract for DeFi VN
+# DeFi VN Contracts
+
+These are the Solidity contracts for the DFY token and https://defi.vn.
+
+You can get started like:
+
+```bash
+git clone https://github.com/defi-vn/DeFi-VN-Smart-Contract
+npm i
+```
+
+Generally, we use a text editor like Visual Studio code for editing and then we deploy using Remix.
+
 
 1st - Flatten Solidity source code by Truffle Flattener
 truffle-flattener contracts\DFY.sol > FlattenedDFY2.0.sol
