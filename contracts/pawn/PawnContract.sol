@@ -106,12 +106,21 @@ contract PawnContract is Ownable, Pausable, ReentrancyGuard {
         uint256 expiration;
     }
 
+    enum CollateralProposalType {LOAN_PACKAGE, OFFER}
+    struct CollateralProposal {
+        CollateralProposalType proposalType; // is Loan package or Offer
+        uint32 dataId;  // is id of loan package or offer
+        uint8 status;   // status of loan package if proposal is package
+    }
+
     mapping (uint256 => Offer) public offers;
     mapping (uint256 => Collateral) public collaterals;
     mapping (uint256 => PawnShopPackage) public pawnShopPackages;
     mapping (uint256 => Contract) public contracts;
     mapping (uint256 => PaymentHistory) public paymentHistories;
     mapping (uint256 => mapping(uint256 => CollateralSubmitPawnShopPackageStatus)) public pawnShopPackageSubmittedCollaterals;
+    mapping (uint256 => CollateralProposal[]) public collateralProposals;
+
     mapping (uint256 => mapping(uint256 => RepaymentPhase)) public repaymentPhases;
     mapping (address => uint256) whitelistCollateral;
     mapping (address => mapping(uint256 => uint256)) public lastOffer;
@@ -384,7 +393,12 @@ contract PawnContract is Ownable, Pausable, ReentrancyGuard {
             //package must active
             PawnShopPackage storage pawnShopPackage = pawnShopPackages[uint256(_packageId)];
             require(pawnShopPackage.status == PawnShopPackageStatus.ACTIVE, 'package-not-support');
-            pawnShopPackageSubmittedCollaterals[uint256(_packageId)][_idx] = CollateralSubmitPawnShopPackageStatus.PENDING;
+
+            CollateralProposal storage collateralProposal = collateralProposals[_idx];
+            collateralProposal.proposalType = CollateralProposalType.LOAN_PACKAGE;
+            collateralProposal.dataId = _packageId;
+            collateralProposal.status = CollateralSubmitPawnShopPackageStatus.PENDING;
+
             emit SubmitPawnShopPackage(uint256(_packageId), _idx, CollateralSubmitPawnShopPackageStatus.PENDING);
         }
     }
@@ -405,8 +419,16 @@ contract PawnContract is Ownable, Pausable, ReentrancyGuard {
         
         PawnShopPackage storage pawnShopPackage = pawnShopPackages[_packageId];
         require(pawnShopPackage.status == PawnShopPackageStatus.ACTIVE, 'package-not-open');
-        
+    
+        CollateralProposal storage collateralProposal = collateralProposals[_collateralId];
+        collateralProposal.proposalType = CollateralProposalType.LOAN_PACKAGE;
+        collateralProposal.dataId = _packageId;
+        collateralProposal.status = CollateralSubmitPawnShopPackageStatus.PENDING;
+
+
         pawnShopPackageSubmittedCollaterals[_packageId][_collateralId] = CollateralSubmitPawnShopPackageStatus.PENDING;
+        collateralSubmittedToPawnShop[_collateralId][_packageId] = CollateralSubmitPawnShopPackageStatus.PENDING;
+
         emit SubmitPawnShopPackage(_packageId, _collateralId, CollateralSubmitPawnShopPackageStatus.PENDING);
     }
 
@@ -415,13 +437,38 @@ contract PawnContract is Ownable, Pausable, ReentrancyGuard {
         uint256 _packageId
     ) external whenNotPaused
     {
-        // TODO: Store status of package id and collateral id for: waiting for accept, accepted, rejected
-        // TODO: check for owner of packageId
-        // TODO: check for collateral status is open
-        // TODO: check for collateral-package status is waiting for accept
-        // TODO: set status of collateral-package to waiting for generate contract
-        // TODO: set status of collateral status for accepted
+        // Check package
+        PawnShopPackage storage pawnShopPackage = pawnShopPackages[_packageId];
+        // check for owner of packageId
+        require(pawnShopPackage.owner == msg.sender, 'not-owner-of-this-package');
+        // check for status of package must be active
+        require(pawnShopPackage.status == PawnShopPackageStatus.ACTIVE, 'package-not-active');
+
+        // Check collateral
+        // check for status of collateral must be OPEN
+        Collateral storage collateral = collaterals[_collateralId];
+        require(collateral.status == CollateralStatus.OPEN, 'collateral-not-open');
+
+        // Check for status of collateral-package must be PENDING
+        require(pawnShopPackageSubmittedCollaterals[_packageId][_collateralId] == CollateralSubmitPawnShopPackageStatus.PENDING, 'invalid-status-collateral-link-package');
+        require(collateralSubmittedToPawnShop[_collateralId][_packageId] == CollateralSubmitPawnShopPackageStatus.PENDING, 'invalid-status-collateral-link-package');
+
+        // Process update state
+        // Set status of this collateral-package to ACCEPTED
         pawnShopPackageSubmittedCollaterals[_packageId][_collateralId] = CollateralSubmitPawnShopPackageStatus.ACCEPTED;
+        collateralSubmittedToPawnShop[_collateralId][_packageId] = CollateralSubmitPawnShopPackageStatus.ACCEPTED;
+        // set status of collateral to accepted
+        collateral.status = CollateralStatus.DOING;
+        // set status of other offer link to this collateral to cancel
+        for (uint256 i = 0; i < numberOffers; i++) {
+            if (offers[i].collateralId == _collateralId) {
+                offers[i].status = OfferStatus.CANCEL;
+                emit CancelOffer(i, offers[i].owner);
+            }
+        }
+        // set status of other collateral-package-link to cancel
+        
+
         emit SubmitPawnShopPackage(_packageId, _collateralId, CollateralSubmitPawnShopPackageStatus.ACCEPTED);
     }
 
@@ -435,8 +482,10 @@ contract PawnContract is Ownable, Pausable, ReentrancyGuard {
         // TODO: check for collateral-package status is waiting for accept
         // TODO: change status of collateral-package to rejected
         pawnShopPackageSubmittedCollaterals[_packageId][_collateralId] = CollateralSubmitPawnShopPackageStatus.REJECTED;
+        collateralSubmittedToPawnShop[_collateralId][_packageId] = CollateralSubmitPawnShopPackageStatus.REJECTED;
         emit SubmitPawnShopPackage(_packageId, _collateralId, CollateralSubmitPawnShopPackageStatus.REJECTED);
     }
+
 
     /**
     * @dev create Collateral function, collateral will be stored in this contract
