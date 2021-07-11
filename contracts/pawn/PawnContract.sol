@@ -397,7 +397,7 @@ contract PawnContract is Ownable, Pausable, ReentrancyGuard {
 
         require(_loanAmountRange.lowerBound < _loanAmountRange.upperBound, 'loan-range');
         require(_durationRange.lowerBound < _durationRange.upperBound, 'duration-range');
-        require(_durationType > 1, 'duration-type');
+        require(_durationType < 2, 'duration-type');
         
         require(_loanToken != address(0), 'bnb-as-loan');
 
