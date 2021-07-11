@@ -550,7 +550,8 @@ contract PawnContract is Ownable, Pausable, ReentrancyGuard {
     ) external whenNotPaused
     {
         // Check for owner of packageId
-        // TODO: Disable for 1.0
+        // Disable for 1.0
+        require(false, 'disabled');
         PawnShopPackage storage pawnShopPackage = pawnShopPackages[_packageId];
         require(pawnShopPackage.owner == msg.sender || msg.sender == operator, 'owner-or-operator');
         require(pawnShopPackage.status == PawnShopPackageStatus.ACTIVE, 'package');        
@@ -660,7 +661,8 @@ contract PawnContract is Ownable, Pausable, ReentrancyGuard {
         * @param  _offerId is id of offer
         */
     function acceptOffer(uint256 _collateralId, uint256 _offerId) external whenNotPaused {
-        //TODO: Temporary disable for release 1.0
+        // Disable for 1.0
+        require(false, 'disabled');
         Collateral storage collateral = collaterals[_collateralId];
         require(msg.sender == collateral.owner, 'owner');
         require(collateral.status == CollateralStatus.OPEN, 'collateral');
@@ -722,7 +724,8 @@ contract PawnContract is Ownable, Pausable, ReentrancyGuard {
         uint256 _exchangeRate
     ) external whenNotPaused onlyOperator
     {
-        // TODO: Temporary disable for release 1.0
+        // Disable for 1.0
+        require(false, 'disabled');
         // Package must active
         PawnShopPackage storage pawnShopPackage = pawnShopPackages[_packageId];
         require(pawnShopPackage.status == PawnShopPackageStatus.ACTIVE, 'package');        
@@ -813,13 +816,6 @@ contract PawnContract is Ownable, Pausable, ReentrancyGuard {
         PaymentRequest data
     );
 
-    /**
-        End lend period settlement and generate invoice for next period
-        TODO: Need review logic of this function for all case
-     */
-    event DebugClosePaymentRequest (
-        uint256 remainingLoan // TODO: Remove when live
-    );
     function closePaymentRequestAndStartNew(
         uint256 _contractId,
         uint256 _remainingLoan,
@@ -830,7 +826,8 @@ contract PawnContract is Ownable, Pausable, ReentrancyGuard {
         bool _chargePrepaidFee
 
     ) external whenNotPaused onlyOperator {
-        // TODO: Temporary disable for release 1.0
+        // Disable for 1.0
+        require(false, 'disabled');
         Contract storage currentContract = contractMustActive(_contractId);
 
         // Check if number of requests is 0 => create new requests, if not then update current request as LATE or COMPLETE and create new requests
@@ -847,7 +844,6 @@ contract PawnContract is Ownable, Pausable, ReentrancyGuard {
 
             // Validate: Due date timestamp of next payment request must not over contract due date
             require(_dueDateTimestamp <= currentContract.terms.contractEndDate, 'contract-end-date');
-            emit DebugClosePaymentRequest(previousRequest.requestId); // TODO: Remove when live
             require(_dueDateTimestamp > previousRequest.dueDateTimestamp || _dueDateTimestamp == 0, 'less-than-previous');
 
             // update previous
@@ -936,7 +932,8 @@ contract PawnContract is Ownable, Pausable, ReentrancyGuard {
         uint256 _paidInterestAmount,
         uint256 _paidLoanAmount
     ) external whenNotPaused {
-        // TODO: Temporary disable for release 1.0
+        // Disable for 1.0
+        require(false, 'disabled');
         // Get contract & payment request
         Contract storage _contract = contractMustActive(_contractId);
         PaymentRequest[] storage requests = contractPaymentRequestMapping[_contractId];
@@ -1065,19 +1062,13 @@ contract PawnContract is Ownable, Pausable, ReentrancyGuard {
         uint256 contractId
     );
 
-    // TODO: Remove when live
-    event DebugRiskLiquidation (
-        uint256 valueRemainingToken,
-        uint256 valueRemainingLoan,
-        uint256 valueOfCollateralLiquidationThreshold
-    );
-
     function collateralRiskLiquidationExecution(
         uint256 _contractId,
         uint256 _collateralPerRepaymentTokenExchangeRate,
         uint256 _collateralPerLoanAssetExchangeRate
     ) external whenNotPaused onlyOperator {
-        // TODO: Temporary disable for release 1.0
+        // Disable for 1.0
+        require(false, 'disabled');
         // Validate: Contract must active
         Contract storage _contract = contractMustActive(_contractId);
 
@@ -1085,9 +1076,6 @@ contract PawnContract is Ownable, Pausable, ReentrancyGuard {
         uint256 valueOfRemainingRepayment = (_collateralPerRepaymentTokenExchangeRate * remainingRepayment) / ZOOM;
         uint256 valueOfRemainingLoan = (_collateralPerLoanAssetExchangeRate * remainingLoan) / ZOOM;
         uint256 valueOfCollateralLiquidationThreshold = _contract.terms.collateralAmount * _contract.terms.liquidityThreshold / ZOOM;
-
-        // TODO: Remove when live
-        emit DebugRiskLiquidation(valueOfRemainingRepayment, valueOfRemainingLoan, valueOfCollateralLiquidationThreshold);
 
         require(valueOfRemainingLoan + valueOfRemainingRepayment >= valueOfCollateralLiquidationThreshold, 'under-threshold');
 
@@ -1117,7 +1105,8 @@ contract PawnContract is Ownable, Pausable, ReentrancyGuard {
     function lateLiquidationExecution(
         uint256 _contractId
     ) external whenNotPaused {
-        // TODO: Temporary disable for release 1.0
+        // Disable for 1.0
+        require(false, 'disabled');
         // Validate: Contract must active
         Contract storage _contract = contractMustActive(_contractId);
 
@@ -1140,7 +1129,8 @@ contract PawnContract is Ownable, Pausable, ReentrancyGuard {
     function notPaidFullAtEndContractLiquidation(
         uint256 _contractId
     ) external whenNotPaused {
-        // TODO: Temporary disable for release 1.0
+        // Disable for 1.0
+        require(false, 'disabled');
         Contract storage _contract = contractMustActive(_contractId);
         // validate: current is over contract end date
         require(block.timestamp >= _contract.terms.contractEndDate, 'not-over-due');
