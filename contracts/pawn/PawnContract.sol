@@ -155,9 +155,6 @@ contract PawnContract is Ownable, Pausable, ReentrancyGuard {
         require(whitelistCollateral[_collateralAddress] == 1, 'not-support-collateral');
         //validate: cannot use BNB as loanAsset
         require(_loanAsset != address(0), 'bnb-as-loan');
-        if (_collateralAddress == address(0)) {
-            require(_amount == msg.value, 'amount-bnb');
-        }
 
         //id of collateral
         _idx = numberCollaterals;
@@ -1008,6 +1005,7 @@ contract PawnContract is Ownable, Pausable, ReentrancyGuard {
 
     function safeTransfer(address asset, address from, address to, uint256 amount) internal {
         if (asset == address(0)) {
+            require(from.balance == amount, 'not-enough-balance');
             // Handle BNB            
             if (to == address(this)) {
                 // Send to this contract
@@ -1017,16 +1015,18 @@ contract PawnContract is Ownable, Pausable, ReentrancyGuard {
                 require(success, 'fail-transfer-bnb');
             } else {
                 // Send from other address to another address
-                require(false, 'not-allow-transfer-bnb-from-address-to-address');
+                require(false, 'not-allow-transfer');
             }
         } else {
             // Handle ERC20
             uint256 prebalance = IERC20(asset).balanceOf(to);
+            require(IERC20(asset).balanceOf(from) >= amount, 'not-enough-balance');
             if (from == address(this)) {
                 // transfer direct to to
-                IERC20(asset).transfer(to, amount);
+                IERC20(asset).safeTransfer(to, amount);
             } else {
-                IERC20(asset).transferFrom(from, to, amount);
+                require(IERC20(asset).allowance(from, address(this)) >= amount, 'not-enough-allowance');
+                IERC20(asset).safeTransferFrom(from, to, amount);
             }
             require(IERC20(asset).balanceOf(to) - amount == prebalance, 'not-transfer-enough');
         }
